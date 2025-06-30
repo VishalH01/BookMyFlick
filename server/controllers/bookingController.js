@@ -1,4 +1,3 @@
-
 import Stripe from "stripe";
 import Booking from "../models/Booking.js";
 import Show from "../models/Show.js";
@@ -46,18 +45,20 @@ export const createBooking = async (req, res) => {
     await showData.save();
 
     //stripe gateway init
-    const stripeInstance = new Stripe(process.env.STRIPE_SECRETE_KEY)
+    const stripeInstance = new Stripe(process.env.STRIPE_SECRETE_KEY);
     // createing line items for stripe
-    const line_items = [{
-      price_data: {
-        currency: "USD",
-        product_data: {
-          name: showData.movie.title,
+    const line_items = [
+      {
+        price_data: {
+          currency: "USD",
+          product_data: {
+            name: showData.movie.title,
+          },
+          unit_amount: Math.floor(booking.amount) * 100,
         },
-        unit_amount: Math.floor(booking.amount) * 100,
+        quantity: 1,
       },
-      quantity: 1,
-    }]
+    ];
 
     const session = await stripeInstance.checkout.sessions.create({
       success_url: `${origin}/loading/my-booking`,
@@ -68,19 +69,13 @@ export const createBooking = async (req, res) => {
         bookingId: booking._id.toString(),
       },
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60, //expires in 30 minutes
-    })
+    });
 
     booking.paymentLink = session.url;
-    await booking.save()
-    
+    await booking.save();
 
     //run inngest schedular fun
-    await inngest.send({
-      name: "app/checkpayment",
-      data: {
-        bookingId: booking._id.toString(),
-      }
-    })
+   
 
     res.json({ success: true, url: session.url });
   } catch (error) {
@@ -89,17 +84,16 @@ export const createBooking = async (req, res) => {
   }
 };
 
-
-
 export const getOccupiedSeats = async (req, res) => {
-    try {
-        const {showId} = req.params;
-        const showData = await Show.findById(showId);
-        const occupiedSeats = Object.keys(showData.occupiedSeats);
+  try {
+    const { showId } = req.params;
+    const showData = await Show.findById(showId);
+    const occupiedSeats = Object.keys(showData.occupiedSeats);
 
-        return res.json({success: true, occupiedSeats})
-    } catch (error) {
-        console.log(error.message);
-        return res.json({success: false, message: error.message})
-    }
-}
+    
+    return res.json({ success: true, occupiedSeats });
+  } catch (error) {
+    console.log(error.message);
+    return res.json({ success: false, message: error.message });
+  }
+};
