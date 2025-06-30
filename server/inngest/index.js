@@ -51,7 +51,7 @@ const syncUserUpdation = inngest.createFunction(
 // ingest function to cancell booking
 
 const releaseSeatsAndDeleteBooking = inngest.createFunction(
-  { id: "releaseSeatsAndDeleteBooking" },
+  { id: "release-seats-delete-booking" },
   { event: "app/checkpayment" },
   async ({ event, step }) => {
     const tenMinutesLater = new Date(Date.now() + 10 * 60 * 1000);
