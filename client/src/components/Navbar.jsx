@@ -3,11 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { assets } from "../assets/assets";
 import { useClerk, UserButton, useUser } from "@clerk/clerk-react";
+import { useAppContext } from "../context/appContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useUser();
   const { openSignIn } = useClerk();
+  const {favouriteMovies} = useAppContext()
 
   const navigate = useNavigate();
 
@@ -63,7 +65,7 @@ const Navbar = () => {
         >
           Releases
         </Link>
-        <Link
+        {favouriteMovies.length > 0 && <Link
           onClick={() => {
             scrollTo(0, 0);
             setIsOpen(false);
@@ -71,7 +73,7 @@ const Navbar = () => {
           to="/favourite"
         >
           Favourites
-        </Link>
+        </Link>}
       </div>
       <div className="flex items-center gap-8">
         <SearchIcon className="max-md:hidden w-6 h-6 cursor-pointer" />
