@@ -15,7 +15,7 @@ import AddShows from "./pages/admin/AddShows";
 import ListShows from "./pages/admin/ListShows";
 import ListBookings from "./pages/admin/ListBookings";
 import { SignIn } from "@clerk/clerk-react";
-import { useAppContext } from "./context/appContext";
+import { useAppContext } from "./context/AppContext";
 import Loading from "./components/Loading";
 
 const App = () => {
