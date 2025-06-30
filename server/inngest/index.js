@@ -79,18 +79,82 @@ const sendBookingConfirmationEmail = inngest.createFunction(
   { event: "app/show.booked" },
   async ({ event, step }) => {
     const { bookingId } = event.data;
-    const booking = await Booking.findById(bookingId).populate({
-      path: "show",
-      populate: { path: "movie", model: "Movie" },
-    }).populate("user");
+    const booking = await Booking.findById(bookingId)
+      .populate({
+        path: "show",
+        populate: { path: "movie", model: "Movie" },
+      })
+      .populate("user");
 
     await sendEmail({
       to: booking.user.email,
       subject: "Booking Confirmation",
       body: `Your booking for ${booking.show.movie.title} has been confirmed. Your booking ID is ${booking._id}.`,
-    })
+    });
   }
-
 );
 
-export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation, releaseSeatsAndDeleteBooking, sendBookingConfirmationEmail];
+const sendShowReminders = inngest.createFunction(
+  {
+    id: "send-show-reminders",
+  },
+  { cron: "0 */8 * * *" },
+  async ({ step }) => {
+    const now = new Date();
+    const in8Hours = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const windowStart = new Date(in8Hours.getTime() - 10 * 60 * 1000);
+
+    const reminderTasks = await step.run(
+      "prepare-remindeer-tasks",
+      async () => {
+        const shows = await Show.find({
+          showTime: { $gte: windowStart, $lte: in8Hours },
+        }).populate("movie");
+        const tasks = [];
+        for (const show of shows) {
+          if (!show.movie || !show.occupiedSeats) continue;
+          const userIds = [...new Set(Object.values(show.occupiedSeats))];
+          if (userIds.length === 0) continue;
+          const users = await User.find({ _id: { $in: userIds } }).select(
+            "name email"
+          );
+          for (const user of users) {
+            tasks.push({
+              userEmail: user.email,
+              userName: user.name,
+              movieTitle: show.movie.title,
+              showTime: show.showTime,
+            });
+          }
+        }
+        return tasks;
+      }
+    );
+    if (reminderTasks.length === 0) {
+      return { sent: 0, message: "No reminders to send" };
+    }
+    const results = await step.run("send-all-reminders", async () => {
+      return await Promise.allSettled(
+        reminderTasks.map((task) =>
+          sendEmail({
+            to: task.userEmail,
+            subject: `Reminder: Your show for ${task.movieTitle} is in 8 hours`,
+            body: `Hello ${task.userName},\n\nThis is a reminder that your show for ${task.movieTitle} is in 8 hours. Please arrive on time to avoid any inconvenience.\n\nBest regards,\nCinema Booking App`,
+          })
+        )
+      );
+    });
+    const sent = results.filter((result) => result.status === "fulfilled").length;
+    const failed = results.length - sent;
+    return { sent, failed, message: `Sent ${sent} reminders, ${failed} failed` };
+  }
+);
+
+export const functions = [
+  syncUserCreation,
+  syncUserDeletion,
+  syncUserUpdation,
+  releaseSeatsAndDeleteBooking,
+  sendBookingConfirmationEmail,
+  sendShowReminders,
+];
