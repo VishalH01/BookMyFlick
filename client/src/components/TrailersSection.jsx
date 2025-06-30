@@ -3,7 +3,7 @@ import { dummyTrailers } from "../assets/assets";
 import ReactPlayer from "react-player";
 import BlurCircle from "./BlurCircle";
 import { PlayCircleIcon } from "lucide-react";
-import { useAppContext } from "../context/appContext";
+import { useAppContext } from "../context/AppContext";
 
 const TrailersSection = () => {
   const [currentTrailer, setCurrentTrailer] = useState(dummyTrailers[0]);
