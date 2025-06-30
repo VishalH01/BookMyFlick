@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import mongoose from "mongoose";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import { clerkMiddleware } from "@clerk/express";
@@ -11,6 +10,7 @@ import bookingRouter from "./routes/bookingRoutes.js";
 import adminRouter from "./routes/adminRoutes.js";
 import userRouter from "./routes/userRoutes.js";
 import { stripeWebhook } from "./controllers/stripeWenhooks.js";
+
 
 const app = express();
 dotenv.config();

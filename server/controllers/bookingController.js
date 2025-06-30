@@ -2,6 +2,7 @@
 import Stripe from "stripe";
 import Booking from "../models/Booking.js";
 import Show from "../models/Show.js";
+import { inngest } from "../inngest/index.js";
 
 // Funvtion to check availability of selected seats for a movie
 const checkSeatsAvailability = async (showId, selectedSeats) => {
@@ -49,7 +50,7 @@ export const createBooking = async (req, res) => {
     // createing line items for stripe
     const line_items = [{
       price_data: {
-        currency: "usd",
+        currency: "USD",
         product_data: {
           name: showData.movie.title,
         },
@@ -72,10 +73,19 @@ export const createBooking = async (req, res) => {
     booking.paymentLink = session.url;
     await booking.save()
     
-    return res.json({ success: true, url: session.url });
+
+    //run inngest schedular fun
+    await inngest.send({
+      name: "app/checkpayment",
+      data: {
+        bookingId: booking._id.toString(),
+      }
+    })
+
+    res.json({ success: true, url: session.url });
   } catch (error) {
     console.error("Error creating booking:", error.message);
-    return res.json({ success: false, message: error.message });
+    res.json({ success: false, message: error.message });
   }
 };
 
